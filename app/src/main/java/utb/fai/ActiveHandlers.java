@@ -18,17 +18,18 @@ public class ActiveHandlers {
     }
 
     /**
-     * Send message to everyone except yourself.
+     * Send message to everyone in your groups except yourself.
      * 
      * @param sender  - sender reference
      * @param message - message
      */
     synchronized void sendMessageToAll(SocketHandler sender, String message) {
-        for (SocketHandler handler : activeHandlersSet)
-            if (handler != sender) {
+        for (SocketHandler handler : activeHandlersSet) {
+            if (handler != sender & !Collections.disjoint(sender.groups, handler.groups)) {
                 if (!handler.messages.offer(message))
                     System.err.printf("Client %s message queue is full, dropping the message!\n", handler.clientID);
             }
+        }
     }
 
     /**

@@ -2,6 +2,7 @@ package utb.fai;
 
 import java.io.*;
 import java.net.*;
+import java.util.*;
 import java.util.concurrent.*;
 
 public class SocketHandler {
@@ -12,6 +13,7 @@ public class SocketHandler {
 	String clientID;
 
 	String name = null;
+	Set<String> groups = new HashSet<>();
 
 	/**
 	 * activeHandlers je reference na množinu všech právě běžících SocketHandlerů.
@@ -91,6 +93,7 @@ public class SocketHandler {
 				 * všech aktivních handlerů, aby chodily zprávy od ostatních i nám
 				 */
 				activeHandlers.add(SocketHandler.this);
+				groups.add("public");
 				BufferedReader reader = new BufferedReader(new InputStreamReader(mySocket.getInputStream(), "UTF-8"));
 				while ((message = reader.readLine()) != null) {
 					// name setting
@@ -113,11 +116,9 @@ public class SocketHandler {
 						String[] args = message.trim().split(" ", 2);
 						if (args.length < 2) {
 							message = "[Error] >> Syntax error: #setMyName <name>";
-							System.out.println(message);
-							activeHandlers.sendMessageToSelf(SocketHandler.this, message);
 						} else if (args[1].contains(" ")) {
 							message = "[Error] >> Name cannot contain spaces.";
-				 		} else if (args[1].equals(name)) {
+						} else if (args[1].equals(name)) {
 							message = "[Error] >> You are already using this name.";
 						} else if (activeHandlers.isNameTaken(args[1])) {
 							message = "[Error] >> This name is already taken.";
@@ -147,6 +148,48 @@ public class SocketHandler {
 						}
 						continue;
 					}
+					// #join <title>
+					if (message.startsWith("#join")) {
+						String[] args = message.trim().split(" ", 2);
+						if (args.length < 2) {
+							message = "[Error] >> Syntax error: #join <title>";
+						} else if (args[1].contains(" ")) {
+							message = "[Error] >> Title cannot contain spaces.";
+						} else if (groups.contains(args[1])) {
+							message = "[Error] >> You are already in this group.";
+						} else {
+							groups.add(args[1]);
+							message = "[Info] >> You have joined group '" + args[1] + "'.";
+						}
+						System.out.println(message);
+						activeHandlers.sendMessageToSelf(SocketHandler.this, message);
+						continue;
+					}
+					// #leave <title>
+					if (message.startsWith("#leave")) {
+						String[] args = message.trim().split(" ", 2);
+						if (args.length < 2) {
+							message = "[Error] >> Syntax error: #leave <title>";
+						} else if (args[1].contains(" ")) {
+							message = "[Error] >> Title cannot contain spaces.";
+						} else if (!groups.contains(args[1])) {
+							message = "[Error] >> You are not in this group.";
+						} else {
+							groups.remove(args[1]);
+							message = "[Info] >> You have leaved group '" + args[1] + "'.";
+						}
+						System.out.println(message);
+						activeHandlers.sendMessageToSelf(SocketHandler.this, message);
+						continue;
+					}
+					// #groups
+					if (message.startsWith("#groups")) {
+						message = String.join(",", groups);
+						System.out.println(message);
+						activeHandlers.sendMessageToSelf(SocketHandler.this, message);
+						continue;
+					}
+					// send message
 					message = "[" + name + "] >> " + message;
 					System.out.println(message);
 					activeHandlers.sendMessageToAll(SocketHandler.this, message);
