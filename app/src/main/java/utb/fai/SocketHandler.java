@@ -99,7 +99,7 @@ public class SocketHandler {
 						if (message.contains(" ")) {
 							message = "[Error] >> Name cannot contain spaces.";
 						} else if (activeHandlers.isNameTaken(message)) {
-							message = "[Warning] >> This name is already taken.";
+							message = "[Error] >> This name is already taken.";
 						} else {
 							name = message;
 							message = "[Info] >> Your name was set to: " + name;
@@ -118,9 +118,9 @@ public class SocketHandler {
 						} else if (args[1].contains(" ")) {
 							message = "[Error] >> Name cannot contain spaces.";
 				 		} else if (args[1].equals(name)) {
-							message = "[Warning] >> You are already using this name.";
+							message = "[Error] >> You are already using this name.";
 						} else if (activeHandlers.isNameTaken(args[1])) {
-							message = "[Warning] >> This name is already taken.";
+							message = "[Error] >> This name is already taken.";
 						} else {
 							name = args[1];
 							message = "[Info] >> Your name was set to: " + name;
@@ -129,7 +129,24 @@ public class SocketHandler {
 						activeHandlers.sendMessageToSelf(SocketHandler.this, message);
 						continue;
 					}
-
+					// #sendPrivate <name> <message>
+					if (message.startsWith("#sendPrivate")) {
+						String[] args = message.trim().split(" ", 3);
+						if (args.length < 3) {
+							message = "[Error] >> Syntax error: #sendPrivate <name> <message>";
+							System.out.println(message);
+							activeHandlers.sendMessageToSelf(SocketHandler.this, message);
+						} else {
+							message = "[" + name + "] >> " + args[2];
+							System.out.println(message);
+							if (!activeHandlers.sendMessageToName(message, args[1])) {
+								message = "[Error] >> Client with name '" + args[1] + "' doesn't exist.";
+								System.out.println(message);
+								activeHandlers.sendMessageToSelf(SocketHandler.this, message);
+							}
+						}
+						continue;
+					}
 					message = "[" + name + "] >> " + message;
 					System.out.println(message);
 					activeHandlers.sendMessageToAll(SocketHandler.this, message);

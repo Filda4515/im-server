@@ -32,6 +32,24 @@ public class ActiveHandlers {
     }
 
     /**
+     * Send message to client by name.
+     * 
+     * @param message  - message
+     * @param name - name
+     * @return false if name doesn't exist; true otherwise
+     */
+    synchronized boolean sendMessageToName(String message, String name) {
+        for (SocketHandler handler : activeHandlersSet) {
+            if (handler.name.equals(name)) {
+                if (!handler.messages.offer(message))
+                    System.err.printf("Client %s message queue is full, dropping the message!\n", handler.clientID);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
      * Checks if a name is already taken by another client.
      *
      * @param name - name
