@@ -13,7 +13,7 @@ public class ActiveHandlers {
      * @param message - message
      */
     void sendMessageToSelf(SocketHandler sender, String message) {
-        if (!sender.messages.offer(message)) // zkus přidat zprávu do fronty jeho zpráv
+        if (!sender.messages.offer(message))
             System.err.printf("Client %s message queue is full, dropping the message!\n", sender.clientID);
     }
 
@@ -24,11 +24,26 @@ public class ActiveHandlers {
      * @param message - message
      */
     synchronized void sendMessageToAll(SocketHandler sender, String message) {
-        for (SocketHandler handler : activeHandlersSet) // pro všechny aktivní handlery
+        for (SocketHandler handler : activeHandlersSet)
             if (handler != sender) {
-                if (!handler.messages.offer(message)) // zkus přidat zprávu do fronty jeho zpráv
+                if (!handler.messages.offer(message))
                     System.err.printf("Client %s message queue is full, dropping the message!\n", handler.clientID);
             }
+    }
+
+    /**
+     * Checks if a name is already taken by another client.
+     *
+     * @param name - name
+     * @return true if the name is taken by another client; false otherwise
+     */
+    synchronized boolean isNameTaken(String name) {
+        for (SocketHandler handler : activeHandlersSet) {
+            if (name.equals(handler.name)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

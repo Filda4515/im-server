@@ -92,16 +92,44 @@ public class SocketHandler {
 				 */
 				activeHandlers.add(SocketHandler.this);
 				BufferedReader reader = new BufferedReader(new InputStreamReader(mySocket.getInputStream(), "UTF-8"));
-				while ((message = reader.readLine()) != null) { // přišla od mého klienta nějaká zpráva?
+				while ((message = reader.readLine()) != null) {
 					// name setting
 					if (name == null) {
-						name = message;
-						message = "Your name was set to: " + message;
-						System.out.println("" + message);
+						message = message.trim();
+						if (message.contains(" ")) {
+							message = "[Error] >> Name cannot contain spaces.";
+						} else if (activeHandlers.isNameTaken(message)) {
+							message = "[Warning] >> This name is already taken.";
+						} else {
+							name = message;
+							message = "[Info] >> Your name was set to: " + name;
+						}
+						System.out.println(message);
 						activeHandlers.sendMessageToSelf(SocketHandler.this, message);
 						continue;
 					}
-					// ano - pošli ji všem ostatním klientům
+					// #setMyName <name>
+					if (message.startsWith("#setMyName")) {
+						String[] args = message.trim().split(" ", 2);
+						if (args.length < 2) {
+							message = "[Error] >> Syntax error: #setMyName <name>";
+							System.out.println(message);
+							activeHandlers.sendMessageToSelf(SocketHandler.this, message);
+						} else if (args[1].contains(" ")) {
+							message = "[Error] >> Name cannot contain spaces.";
+				 		} else if (args[1].equals(name)) {
+							message = "[Warning] >> You are already using this name.";
+						} else if (activeHandlers.isNameTaken(args[1])) {
+							message = "[Warning] >> This name is already taken.";
+						} else {
+							name = args[1];
+							message = "[Info] >> Your name was set to: " + name;
+						}
+						System.out.println(message);
+						activeHandlers.sendMessageToSelf(SocketHandler.this, message);
+						continue;
+					}
+
 					message = "[" + name + "] >> " + message;
 					System.out.println(message);
 					activeHandlers.sendMessageToAll(SocketHandler.this, message);
