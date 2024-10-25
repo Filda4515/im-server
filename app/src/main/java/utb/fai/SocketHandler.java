@@ -8,26 +8,28 @@ public class SocketHandler {
 	/** mySocket je socket, o který se bude tento SocketHandler starat */
 	Socket mySocket;
 
-	/** client ID je øetìzec ve formátu <IP_adresa>:<port> */
+	/** client ID je řetězec ve formátu <IP_adresa>:<port> */
 	String clientID;
 
+	String name = null;
+
 	/**
-	 * activeHandlers je reference na mnoinu vech právì bìících SocketHandlerù.
-	 * Potøebujeme si ji udrovat, abychom mohli zprávu od tohoto klienta
-	 * poslat vem ostatním!
+	 * activeHandlers je reference na množinu všech právě běžících SocketHandlerů.
+	 * Potřebujeme si ji udržovat, abychom mohli zprávu od tohoto klienta
+	 * poslat všem ostatním!
 	 */
 	ActiveHandlers activeHandlers;
 
 	/**
-	 * messages je fronta pøíchozích zpráv, kterou musí mít kaý klient svoji
-	 * vlastní - pokud bude je pøetíená nebo nefunkèní klientova sí,
-	 * èekají zprávy na doruèení právì ve frontì messages
+	 * messages je fronta příchozích zpráv, kterou musí mít každý klient svoji
+	 * vlastní - pokud bude přetížená nebo nefunkční klientova síť,
+	 * čekají zprávy na doručení právě ve frontě messages
 	 */
 	ArrayBlockingQueue<String> messages = new ArrayBlockingQueue<String>(20);
 
 	/**
-	 * startSignal je synchronizaèní závora, která zaøizuje, aby oba tasky
-	 * OutputHandler.run() a InputHandler.run() zaèaly ve stejný okamik.
+	 * startSignal je synchronizační závora, která zařizuje, aby oba tasky
+	 * OutputHandler.run() a InputHandler.run() začaly ve stejný okamžik.
 	 */
 	CountDownLatch startSignal = new CountDownLatch(2);
 
@@ -36,7 +38,7 @@ public class SocketHandler {
 	/** inputHandler.run() se bude starat o InputStream mého socketu */
 	InputHandler inputHandler = new InputHandler();
 	/**
-	 * protoe v outputHandleru nedovedu detekovat uzavøení socketu, pomùe mi
+	 * protože v outputHandleru nedovedu detekovat uzavření socketu, pomůže mi
 	 * inputFinished
 	 */
 	volatile boolean inputFinished = false;
@@ -58,17 +60,17 @@ public class SocketHandler {
 				writer = new OutputStreamWriter(mySocket.getOutputStream(), "UTF-8");
 				writer.write("\nYou are connected from " + clientID + "\n");
 				writer.flush();
+				writer.write("Enter your name:\n");
+				writer.flush();
 				while (!inputFinished) {
-					String m = messages.take();// blokující ètení - pokud není ve frontì zpráv nic, uspi se!
-					writer.write(m + "\r\n"); // pokud nìjaké zprávy od ostatních máme,
-					writer.flush(); // poleme je naemu klientovi
+					String m = messages.take();// blokující čtení - pokud není ve frontě zpráv nic, uspi se!
+					writer.write(m + "\r\n"); // pokud nějaké zprávy od ostatních máme,
+					writer.flush(); // pošleme je našemu klientovi
 					System.err.println("DBG>Message sent to " + clientID + ":" + m + "\n");
 				}
 			} catch (IOException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 			System.err.println("DBG>Output handler for " + clientID + " has finished.");
@@ -83,18 +85,26 @@ public class SocketHandler {
 				startSignal.countDown();
 				startSignal.await();
 				System.err.println("DBG>Input handler running for " + clientID);
-				String request = "";
+				String message = "";
 				/**
-				 * v okamiku, kdy nás Thread pool spustí, pøidáme se do mnoiny
-				 * vech aktivních handlerù, aby chodily zprávy od ostatních i nám
+				 * v okamžiku, kdy nás Thread pool spustí, přidáme se do množiny
+				 * všech aktivních handlerů, aby chodily zprávy od ostatních i nám
 				 */
 				activeHandlers.add(SocketHandler.this);
 				BufferedReader reader = new BufferedReader(new InputStreamReader(mySocket.getInputStream(), "UTF-8"));
-				while ((request = reader.readLine()) != null) { // pøila od mého klienta nìjaká zpráva?
-					// ano - poli ji vem ostatním klientùm
-					request = "From client " + clientID + ": " + request;
-					System.out.println(request);
-					activeHandlers.sendMessageToAll(SocketHandler.this, request);
+				while ((message = reader.readLine()) != null) { // přišla od mého klienta nějaká zpráva?
+					// name setting
+					if (name == null) {
+						name = message;
+						message = "Your name was set to: " + message;
+						System.out.println("" + message);
+						activeHandlers.sendMessageToSelf(SocketHandler.this, message);
+						continue;
+					}
+					// ano - pošli ji všem ostatním klientům
+					message = "[" + name + "] >> " + message;
+					System.out.println(message);
+					activeHandlers.sendMessageToAll(SocketHandler.this, message);
 				}
 				inputFinished = true;
 				messages.offer("OutputHandler, wakeup and die!");

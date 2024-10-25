@@ -7,24 +7,35 @@ public class ActiveHandlers {
     private HashSet<SocketHandler> activeHandlersSet = new HashSet<SocketHandler>();
 
     /**
-     * sendMessageToAll - Pole zprávu vem aktivním klientùm kromì sebe sama
+     * Send message to yourself.
      * 
-     * @param sender  - reference odesílatele
-     * @param message - øetìzec se zprávou
+     * @param sender  - sender reference
+     * @param message - message
+     */
+    void sendMessageToSelf(SocketHandler sender, String message) {
+        if (!sender.messages.offer(message)) // zkus přidat zprávu do fronty jeho zpráv
+            System.err.printf("Client %s message queue is full, dropping the message!\n", sender.clientID);
+    }
+
+    /**
+     * Send message to everyone except yourself.
+     * 
+     * @param sender  - sender reference
+     * @param message - message
      */
     synchronized void sendMessageToAll(SocketHandler sender, String message) {
-        for (SocketHandler handler : activeHandlersSet) // pro vechny aktivní handlery
+        for (SocketHandler handler : activeHandlersSet) // pro všechny aktivní handlery
             if (handler != sender) {
-                if (!handler.messages.offer(message)) // zkus pøidat zprávu do fronty jeho zpráv
+                if (!handler.messages.offer(message)) // zkus přidat zprávu do fronty jeho zpráv
                     System.err.printf("Client %s message queue is full, dropping the message!\n", handler.clientID);
             }
     }
 
     /**
-     * add pøidá do mnoiny aktivních handlerù nový handler.
-     * Metoda je sychronizovaná, protoe HashSet neumí multithreading.
+     * add přidá do množiny aktivních handlerů nový handler.
+     * Metoda je sychronizovaná, protože HashSet neumí multithreading.
      * 
-     * @param handler - reference na handler, který se má pøidat.
+     * @param handler - reference na handler, který se má přidat.
      * @return true if the set did not already contain the specified element.
      */
     synchronized boolean add(SocketHandler handler) {
@@ -32,8 +43,8 @@ public class ActiveHandlers {
     }
 
     /**
-     * remove odebere z mnoiny aktivních handlerù nový handler.
-     * Metoda je sychronizovaná, protoe HashSet neumí multithreading.
+     * remove odebere z množiny aktivních handlerů nový handler.
+     * Metoda je sychronizovaná, protože HashSet neumí multithreading.
      * 
      * @param handler - reference na handler, který se má odstranit
      * @return true if the set did not already contain the specified element.

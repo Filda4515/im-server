@@ -29,7 +29,6 @@ public class App {
 				}
 
 		}
-		// TODO Auto-generated method stub
 		System.out.printf("IM server listening on port %d, maximum nr. of connections=%d...\n", port, max_conn);
 		ExecutorService pool = Executors.newFixedThreadPool(2 * max_conn);
 		ActiveHandlers activeHandlers = new ActiveHandlers();
